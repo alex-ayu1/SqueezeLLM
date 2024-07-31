@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import math
-import quant_cuda
-
+#import quant_cuda
+import quant_sycl #b/c we named new quant_cuda.py to quant_sycl.py
 
 def round_to_nearest_pole_sim(w, poles):
     """
@@ -215,14 +215,14 @@ class QuantLinearLUT(nn.Module):
                 y = self.bias.clone()
                 outshape[-1] = self.bias.numel()
             else:
-                y = torch.zeros((self.outfeatures), device="cuda", dtype=torch.float32)
+                y = torch.zeros((self.outfeatures), device="xpu:0", dtype=torch.float32)#"cuda", dtype=torch.float32)
                 outshape[-1] = self.outfeatures
             dtype = x.dtype
 
             if self.bits == 3:
                 x = x.float()
                 if self.include_sparse and self.topX > 0:
-                    quant_cuda.vecquant3matmul_spmv_hybrid_nuq_perchannel(
+                    quant_sycl.vecquant3matmul_spmv_hybrid_nuq_perchannel(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -235,7 +235,7 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 elif self.include_sparse and self.balanced:
-                    quant_cuda.vecquant3matmul_spmv_balanced_nuq_perchannel(
+                    quant_sycl.vecquant3matmul_spmv_balanced_nuq_perchannel(
                         self.rows,
                         self.cols,
                         self.startrows,
@@ -249,7 +249,7 @@ class QuantLinearLUT(nn.Module):
                         self.numvals,
                     )
                 elif self.include_sparse:
-                    quant_cuda.vecquant3matmul_spmv_nuq_perchannel(
+                    quant_sycl.vecquant3matmul_spmv_nuq_perchannel(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -260,13 +260,13 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 else:
-                    quant_cuda.vecquant3matmul_nuq_perchannel(
+                    quant_sycl.vecquant3matmul_nuq_perchannel(
                         x, self.qweight, y, self.lookup_table
                     )
             elif self.bits == 4:
                 x = x.float()
                 if self.include_sparse and self.topX > 0:
-                    quant_cuda.vecquant4matmul_spmv_hybrid_nuq_perchannel(
+                    quant_sycl.vecquant4matmul_spmv_hybrid_nuq_perchannel(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -279,7 +279,7 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 elif self.include_sparse and self.balanced:
-                    quant_cuda.vecquant4matmul_spmv_balanced_nuq_perchannel(
+                    quant_sycl.vecquant4matmul_spmv_balanced_nuq_perchannel(
                         self.rows,
                         self.cols,
                         self.startrows,
@@ -293,7 +293,7 @@ class QuantLinearLUT(nn.Module):
                         self.numvals,
                     )
                 elif self.include_sparse:
-                    quant_cuda.vecquant4matmul_spmv_nuq_perchannel(
+                    quant_sycl.vecquant4matmul_spmv_nuq_perchannel(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -304,7 +304,7 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 else:
-                    quant_cuda.vecquant4matmul_nuq_perchannel(
+                    quant_sycl.vecquant4matmul_nuq_perchannel(
                         x, self.qweight, y, self.lookup_table
                     )
 
@@ -314,13 +314,13 @@ class QuantLinearLUT(nn.Module):
             out_shape = x.shape[:-1] + (self.outfeatures,)
             x = x.reshape(-1, x.shape[-1])
             out = torch.zeros(
-                (x.shape[0], self.outfeatures), device="cuda", dtype=torch.float32
+                    (x.shape[0], self.outfeatures), device="xpu:0", dtype=torch.float32 #"cuda", dtype=torch.float32
             )
             dtype = x.dtype
             if self.bits == 3:
                 x = x.float()
                 if self.include_sparse and self.topX > 0:
-                    quant_cuda.vecquant3matmul_spmv_hybrid_nuq_perchannel_batched(
+                    quant_sycl.vecquant3matmul_spmv_hybrid_nuq_perchannel_batched(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -333,7 +333,7 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 elif self.include_sparse:
-                    quant_cuda.vecquant3matmul_spmv_nuq_perchannel_batched(
+                    quant_sycl.vecquant3matmul_spmv_nuq_perchannel_batched(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -344,13 +344,13 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 else:
-                    quant_cuda.vecquant3matmul_nuq_perchannel_batched(
+                    quant_sycl.vecquant3matmul_nuq_perchannel_batched(
                         x, self.qweight, out, self.lookup_table
                     )
             elif self.bits == 4:
                 x = x.float()
                 if self.include_sparse and self.topX > 0:
-                    quant_cuda.vecquant4matmul_spmv_hybrid_nuq_perchannel_batched(
+                    quant_sycl.vecquant4matmul_spmv_hybrid_nuq_perchannel_batched(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -363,7 +363,7 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 elif self.include_sparse:
-                    quant_cuda.vecquant4matmul_spmv_nuq_perchannel_batched(
+                    quant_sycl.vecquant4matmul_spmv_nuq_perchannel_batched(
                         self.rows,
                         self.cols,
                         self.vals,
@@ -374,7 +374,7 @@ class QuantLinearLUT(nn.Module):
                         self.lookup_table,
                     )
                 else:
-                    quant_cuda.vecquant4matmul_nuq_perchannel_batched(
+                    quant_sycl.vecquant4matmul_nuq_perchannel_batched(
                         x, self.qweight, out, self.lookup_table
                     )
             out = out.to(dtype)
