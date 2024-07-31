@@ -1,6 +1,7 @@
 import time
 
 import torch
+import intel_extension_for_pytorch as ipex #newly added
 import torch.nn as nn
 
 from squeezellm.modelutils import *
@@ -77,8 +78,7 @@ def llama_eval(model, testenc, dev):
 
     layers[0] = layers[0].cpu()
     for i in range(len(embeddings)):
-        embeddings[i] = embeddings[i].cpu()
-    torch.cuda.empty_cache()
+        embeddings[i] = embeddings[i].cpu() #torch.cuda.empty_cache()
 
     outs = torch.zeros_like(inps)
     attention_mask = cache["attention_mask"]
@@ -102,8 +102,7 @@ def llama_eval(model, testenc, dev):
                     position_ids=position_ids,
                 )[0]
         layers[i] = layer.cpu()
-        del layer
-        torch.cuda.empty_cache()
+        del layer #torch.cuda.empty_cache()
         inps, outs = outs, inps
 
     norm = get_norm(model, model_type)
@@ -192,7 +191,8 @@ def benchmark(model, input_ids, check=False):
     layers = get_layers(model, model_type)
 
     input_ids = input_ids.to(model.gpus[0] if hasattr(model, "gpus") else DEV)
-    torch.cuda.synchronize()
+    #torch.cuda.synchronize()
+    torch.xpu.synchronize()#since we use sycl now, we don't use cuda
 
     cache = {"past": None}
 
@@ -213,11 +213,12 @@ def benchmark(model, input_ids, check=False):
         tot = 0.0
 
     def sync():
-        if hasattr(model, "gpus"):
-            for gpu in model.gpus:
-                torch.cuda.synchronize(gpu)
-        else:
-            torch.cuda.synchronize()
+        torch.xpu.synchronize();
+        #if hasattr(model, "gpus"):
+        #    for gpu in model.gpus:
+        #        torch.cuda.synchronize(gpu)
+        #else:
+        #    torch.cuda.synchronize()
 
     max_memory = 0
     with torch.no_grad():
@@ -233,7 +234,7 @@ def benchmark(model, input_ids, check=False):
             sync()
             times.append(time.time() - tick)
             print(i, times[-1])
-            max_memory = max(max_memory, torch.cuda.memory_allocated() / 1024 / 1024)
+            #max_memory = max(max_memory, torch.cuda.memory_allocated() / 1024 / 1024)
             if check and i != input_ids.numel() - 1:
                 tot += loss(
                     out.logits[0].to(DEV), input_ids[:, (i + 1)].to(DEV)
@@ -246,7 +247,7 @@ def benchmark(model, input_ids, check=False):
         print("Median:", np.median(times))
         if check:
             print("PPL:", torch.exp(tot / (input_ids.numel() - 1)).item())
-            print("max memory(MiB):", max_memory)
+            #print("max memory(MiB):", max_memory)
 
 
 if __name__ == "__main__":
@@ -305,7 +306,7 @@ if __name__ == "__main__":
         help="Number of dense channel used for hybrid kernel.",
     )
 
-    DEV = torch.device("cuda:0")
+    DEV = torch.device("xpu:0")#("cuda:0")
 
     args = parser.parse_args()
 
@@ -344,12 +345,12 @@ if __name__ == "__main__":
                 with torch.profiler.profile(
                     activities=[
                         torch.profiler.ProfilerActivity.CPU,
-                        torch.profiler.ProfilerActivity.CUDA,
+                        torch.profiler.ProfilerActivity.XPU, #CUDA,
                     ]
                 ) as p:
                     benchmark(model, input_ids, check=args.check)
-                print(
-                    p.key_averages().table(sort_by="self_cuda_time_total", row_limit=-1)
+                    torch.xpu.synchronize() #newly added
+                print(p.key_averages().table(sort_by="self_xpu_time_total", row_limit=-1)
                 )
             else:
                 benchmark(model, input_ids, check=args.check)
