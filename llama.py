@@ -339,10 +339,10 @@ if __name__ == "__main__":
         if args.benchmark:
             input_ids = next(iter(dataloader))[0][:, : args.benchmark]
 
-            if args.torch_profile:
+            if args.torch_profile: #The --torch_profile option enables profiling of the model's execution using the PyTorch profiler. 
                 from torch.profiler import profile, record_function, ProfilerActivity
 
-                with torch.profiler.profile(
+                with torch.profiler.profile( #The profiler records the CPU and XPU activities during the execution of the benchmark function.
                     activities=[
                         torch.profiler.ProfilerActivity.CPU,
                         torch.profiler.ProfilerActivity.XPU, #CUDA,
