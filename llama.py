@@ -256,50 +256,50 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("model", type=str, help="llama model to load")
-    parser.add_argument(
+    parser.add_argument("model", type=str, help="llama model to load") #Specifies the model to load, so here might be models/xgen-7b-8k-base
+    parser.add_argument( #Specifies which dataset to use for benchmarking, might be c4
         "dataset",
         type=str,
         choices=["wikitext2", "ptb", "c4"],
         help="Which dataset to use for benchmarking.",
     )
-    parser.add_argument(
+    parser.add_argument( #"Seed" for sampling the calibration data, optional
         "--seed", type=int, default=0, help="Seed for sampling the calibration data."
     )
-    parser.add_argument(
+    parser.add_argument( #Number of bits to use for quantization, might be 3, optional
         "--wbits",
         type=int,
         default=16,
         choices=[3, 4, 16],
         help="#bits to use for quantization; use 16 for evaluating base model.",
     )
-    parser.add_argument("--eval", action="store_true", help="evaluate quantized model.")
-    parser.add_argument("--load", type=str, default="", help="Load quantized model.")
-    parser.add_argument(
+    parser.add_argument("--eval", action="store_true", help="evaluate quantized model.") #Evaluate quantized model, might be --eval, optional
+    parser.add_argument("--load", type=str, default="", help="Load quantized model.") #Load quantized model, might be --load sq-xgen-7b-8k-base-w3-s0.pt, optional
+    parser.add_argument( #Number of tokens to use for benchmarking, might be --benchmark 128, optional 
         "--benchmark",
         type=int,
         default=0,
         help="Number of tokens to use for benchmarking.",
     )
-    parser.add_argument(
+    parser.add_argument( #Compute perplexity during benchmarking for verification, might be --check optional
         "--check",
         action="store_true",
         help="Whether to compute perplexity during benchmarking for verification.",
     )
-    parser.add_argument(
+    parser.add_argument( #Number of calibration data samples, might be --nsamples 128, optional
         "--nsamples", type=int, default=128, help="Number of calibration data samples."
     )
-    parser.add_argument(
-        "--torch_profile",
+    parser.add_argument( #Use CUDA profiling tool for timing runs, might be --torch_profile, optional
+        "--torch_profile", 
         action="store_true",
         help="Use CUDA profiling tool for timing runs.",
     )
-    parser.add_argument(
+    parser.add_argument( #Whether loaded checkpoint has sparse matrix, might be --include_sparse, optional
         "--include_sparse",
         action="store_true",
         help="Whether loaded checkpoint has sparse matrix.",
     )
-    parser.add_argument(
+    parser.add_argument( #Number of dense channels used for hybrid kernel, might be --num_dense_channels 10, optional
         "--num_dense_channels",
         type=int,
         default=10,
@@ -315,8 +315,8 @@ if __name__ == "__main__":
 
     if args.load:
         print(args.model)
-        model = load_quant(
-            args.model,
+        model = load_quant( #if provided, the script loads a quantized model
+            args.model, 
             args.load,
             args.wbits,
             args.include_sparse,
@@ -334,7 +334,7 @@ if __name__ == "__main__":
         seqlen=model.seqlen,
     )
 
-    if args.benchmark:
+    if args.benchmark: #if provided, the script benchmarks the model
         model = model.to(DEV)
         if args.benchmark:
             input_ids = next(iter(dataloader))[0][:, : args.benchmark]
@@ -355,7 +355,7 @@ if __name__ == "__main__":
             else:
                 benchmark(model, input_ids, check=args.check)
 
-    if args.eval:
+    if args.eval: #if provided, the script evaluates the model on specified datasets
         datasets = ["wikitext2", "c4"]
         for dataset in datasets:
             dataloader, testloader = get_loaders(
