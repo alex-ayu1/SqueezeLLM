@@ -1003,3 +1003,110 @@ STAGE:2024-07-26 23:07:30 2076790:2076790 XPUActivityProfilerController.cpp:281]
 Self CPU time total: 5.407s
 
 
+Talked to IPEX team to understand how to profile Intel GPU, had to install this: 
+https://intel.github.io/intel-extension-for-pytorch/#installation?platform=gpu
+IPEX team also suggested to upgrade IPEX with these: 
+https://ubit-artifactory-sh.intel.com/artifactory/aipc_releases-sh-local/gpu-new/releases/2024.2/IPEX_2.3.110+xpu/RC1/
+Checked Python 3.9, so used py3.9 link: (If met network issue, do this: export no_proxy=ubit-artifactory-sh.intel.com)
+wget https://ubit-artifactory-sh.intel.com/artifactory/aipc_releases-sh-local/gpu-new/releases/2024.2/IPEX_2.3.110+xpu/RC1/py39/intel_extension_for_pytorch-2.3.110+xpu-cp39-cp39-linux_x86_64.whl
+wget https://ubit-artifactory-sh.intel.com/artifactory/aipc_releases-sh-local/gpu-new/releases/2024.2/IPEX_2.3.110+xpu/RC1/py39/oneccl_bind_pt-2.3.100+xpu-cp39-cp39-linux_x86_64.whl
+wget https://ubit-artifactory-sh.intel.com/artifactory/aipc_releases-sh-local/gpu-new/releases/2024.2/IPEX_2.3.110+xpu/RC1/py39/torch-2.3.1+cxx11.abi-cp39-cp39-linux_x86_64.whl
+wget https://ubit-artifactory-sh.intel.com/artifactory/aipc_releases-sh-local/gpu-new/releases/2024.2/IPEX_2.3.110+xpu/RC1/py39/torchaudio-2.3.1+cxx11.abi-cp39-cp39-linux_x86_64.whl
+Then pip install everything. 
+
+Current pip list: 
+Package                     Version          Editable project location
+--------------------------- ---------------- ---------------------------------------------------------------------------------------------------------
+accelerate                  0.31.0
+aiohttp                     3.9.5
+aiosignal                   1.3.1
+annotated-types             0.7.0
+async-timeout               4.0.3
+attrs                       23.2.0
+certifi                     2024.6.2
+charset-normalizer          3.3.2
+datasets                    2.19.2
+dill                        0.3.8
+et-xmlfile                  1.1.0
+filelock                    3.14.0
+frozenlist                  1.4.1
+fsspec                      2024.3.1
+huggingface-hub             0.23.3
+idna                        3.7
+intel_extension_for_pytorch 2.3.110+xpu
+Jinja2                      3.1.4
+MarkupSafe                  2.1.5
+mpmath                      1.3.0
+multidict                   6.0.5
+multiprocess                0.70.16
+networkx                    3.2.1
+ninja                       1.10.2.3
+numpy                       1.26.4
+nvidia-cublas-cu12          12.1.3.1
+nvidia-cuda-cupti-cu12      12.1.105
+nvidia-cuda-nvrtc-cu12      12.1.105
+nvidia-cuda-runtime-cu12    12.1.105
+nvidia-cudnn-cu12           8.9.2.26
+nvidia-cufft-cu12           11.0.2.54
+nvidia-curand-cu12          10.3.2.106
+nvidia-cusolver-cu12        11.4.5.107
+nvidia-cusparse-cu12        12.1.0.106
+nvidia-nccl-cu12            2.20.5
+nvidia-nvjitlink-cu12       12.5.40
+nvidia-nvtx-cu12            12.1.105
+oneccl-bind-pt              2.3.100+xpu
+openpyxl                    3.1.2
+packaging                   24.1
+pandas                      2.2.2
+pillow                      10.4.0
+pip                         23.1.2
+popcorn                     0.0.2
+prettytable                 3.9.0
+psutil                      6.0.0
+pyarrow                     16.1.0
+pyarrow-hotfix              0.6
+pydantic                    2.8.2
+pydantic_core               2.20.1
+python-dateutil             2.9.0.post0
+pytz                        2024.1
+PyYAML                      6.0.1
+quant-cuda                  0.0.0
+quant_sycl                  0.0.0            /nfs/site/home/ayu1/.conda/envs/sqllm/lib/python3.9/site-packages/quant_sycl-0.0.0-py3.9-linux-x86_64.egg
+regex                       2024.5.15
+requests                    2.32.3
+ruamel.yaml                 0.18.6
+ruamel.yaml.clib            0.2.8
+safetensors                 0.4.3
+sentencepiece               0.2.0
+setuptools                  69.5.1
+six                         1.16.0
+squeezellm                  0.1.0            /nfs/site/home/ayu1/SqueezeLLM/SqueezeLLM
+sympy                       1.12.1
+tiktoken                    0.7.0
+tokenizers                  0.13.3
+torch                       2.3.1+cxx11.abi
+torchaudio                  2.3.1+cxx11.abi
+torchvision                 0.18.1+cxx11.abi
+tqdm                        4.66.4
+transformers                4.29.0
+triton                      2.3.1
+typing_extensions           4.12.2
+tzdata                      2024.1
+urllib3                     2.2.1
+wcwidth                     0.2.13
+wheel                       0.40.0
+xxhash                      3.4.1
+yarl                        1.9.4
+
+Also need to do install pti: https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu/2-5.html
+Check "Option 2D: Install Using Offline Installation Scripts" section in the page: 
+cd /tmp
+wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/884eaa22-d56f-45dc-9a65-901f1c625f9e/l_intel-for-pytorch-gpu-dev_p_0.5.3.36_offline.sh
+sh ./l_intel-for-pytorch-gpu-dev_p_0.5.3.36_offline.sh
+Since may not be able to install it in /opt/intel/oneapi, can install in ~/intel/oneapi instead, and source ~/intel/oneapi/pti/latest/env/vars.sh
+
+There's a known issue with not finding the library, so need to do this: 
+export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33
+(it might be another version libstdc++.so.6.0.xx, need to check which one it is under /usr/lib/x86_64-linux-gnu/)
+
+
